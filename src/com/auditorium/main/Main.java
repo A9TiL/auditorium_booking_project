@@ -3,13 +3,16 @@ package com.auditorium.main;
 import com.auditorium.model.*;
 import com.auditorium.model.Seat.SeatType;
 import com.auditorium.service.*;
+import com.auditorium.service.ReportService.*;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Scanner;
+import java.util.Map;
 
 public class Main {
     private static ShowManager showManager = ShowManager.getInstance();
     private static BookingService bookingService = new BookingService();
+    private static ReportService reportService = new ReportService();
     private static Scanner scanner = new Scanner(System.in);
     
     public static void main(String[] args) {
@@ -113,13 +116,12 @@ public class Main {
             System.out.print("Number of seats: ");
             int quantity = Integer.parseInt(scanner.nextLine());
             
-            Booking booking = bookingService.bookSeats(showId, seatType, quantity);
+            BookingService.BookingResult result = bookingService.bookSeats(showId, seatType, quantity);
             
             System.out.println("\n✓ BOOKING SUCCESSFUL!");
-            System.out.println(booking);
-            System.out.println("Seats: " + booking.getBookedSeats().stream()
-                    .map(Seat::getSeatNumber)
-                    .reduce((a, b) -> a + ", " + b).orElse(""));
+            System.out.println(result.getBooking());
+            System.out.println("\n--- YOUR TICKET ---");
+            System.out.println(result.getTicket().generatePrintableTicket());
             
         } catch (Exception e) {
             System.out.println("✗ Booking failed: " + e.getMessage());
@@ -142,17 +144,50 @@ public class Main {
     }
     
     private static void viewReports() {
-        System.out.println("\n=== REPORTS ===");
-        System.out.println("Total Revenue: ₹" + String.format("%.2f", showManager.getTotalRevenue()));
+        System.out.println("\n=== REPORTS MENU ===");
+        System.out.println("1. Show Report (with percentages)");
+        System.out.println("2. Sales Person Performance");
+        System.out.println("3. System Statistics");
+        System.out.println("4. All Bookings");
+        System.out.print("\nChoice: ");
         
-        System.out.println("\nSales Person Report:");
-        showManager.getSalesPersonReport().forEach((name, sales) -> 
-            System.out.println("  " + name + ": ₹" + String.format("%.2f", sales))
-        );
+        String choice = scanner.nextLine();
         
-        System.out.println("\nAll Bookings:");
-        for (Booking b : showManager.getAllBookings()) {
-            System.out.println("  " + b);
+        switch (choice) {
+            case "1":
+                System.out.print("Enter Show ID: ");
+                String showId = scanner.nextLine();
+                ShowReport report = reportService.generateShowReport(showId);
+                if (report != null) {
+                    System.out.println("\n" + report);
+                } else {
+                    System.out.println("Show not found");
+                }
+                break;
+                
+            case "2":
+                System.out.println("\n=== SALES PERSON PERFORMANCE ===");
+                Map<String, SalesPerformance> perfReport = 
+                    reportService.generateSalesPerformanceReport();
+                for (SalesPerformance perf : perfReport.values()) {
+                    System.out.println(perf);
+                }
+                break;
+                
+            case "3":
+                SystemStatistics stats = reportService.getSystemStatistics();
+                System.out.println("\n" + stats);
+                break;
+                
+            case "4":
+                System.out.println("\n=== ALL BOOKINGS ===");
+                for (Booking b : showManager.getAllBookings()) {
+                    System.out.println("  " + b);
+                }
+                break;
+                
+            default:
+                System.out.println("Invalid choice");
         }
     }
 }

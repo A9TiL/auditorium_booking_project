@@ -2,8 +2,10 @@ package com.auditorium.service;
 
 import com.auditorium.model.*;
 import com.auditorium.model.Seat.SeatType;
+import com.auditorium.util.ValidationUtil;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class BookingService {
@@ -14,19 +16,27 @@ public class BookingService {
     }
     
     /**
-     * Book seats for a show
+     * Book seats for a show with validation and ticket generation
      */
-    public Booking bookSeats(String showId, SeatType seatType, int quantity) 
+    public BookingResult bookSeats(String showId, SeatType seatType, int quantity) 
             throws Exception {
         
+        // Validation: User must be logged in
         if (!showManager.isLoggedIn()) {
             throw new Exception("Please login first to make a booking");
         }
         
+        // Validation: Quantity
+        ValidationUtil.validateQuantity(quantity);
+        
+        // Validation: Show exists
         Show show = showManager.getShow(showId);
         if (show == null) {
             throw new Exception("Show not found");
         }
+        
+        // Validation: Show is in future
+        ValidationUtil.validateBookingAllowed(show.getShowDate(), show.getShowTime());
         
         // Get available seats
         List<Seat> availableSeats = getAvailableSeats(show, seatType);
@@ -59,11 +69,40 @@ public class BookingService {
         // Add booking to system
         showManager.addBooking(booking);
         
-        return booking;
+        // Generate ticket using Builder pattern
+        Ticket ticket = generateTicket(show, booking, allocatedSeats, seatType, 
+                                      pricePerSeat, totalAmount);
+        
+        return new BookingResult(booking, ticket);
     }
     
     /**
-     * Cancel a booking
+     * Generate ticket using Builder pattern
+     */
+    private Ticket generateTicket(Show show, Booking booking, List<Seat> seats,
+                                  SeatType seatType, double pricePerSeat, double totalAmount) {
+        
+        List<String> seatNumbers = seats.stream()
+                .map(Seat::getSeatNumber)
+                .collect(Collectors.toList());
+        
+        return new Ticket.TicketBuilder()
+                .ticketId("TKT" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
+                .showName(show.getShowName())
+                .showDate(show.getShowDate())
+                .showTime(show.getShowTime())
+                .seatNumbers(seatNumbers)
+                .seatType(seatType.toString())
+                .quantity(seats.size())
+                .pricePerSeat(pricePerSeat)
+                .totalAmount(totalAmount)
+                .bookingId(booking.getBookingId())
+                .salesPersonName(showManager.getCurrentUser().getName())
+                .build();
+    }
+    
+    /**
+     * Cancel a booking with validation
      */
     public double cancelBooking(String bookingId) throws Exception {
         Booking booking = showManager.getBooking(bookingId);
@@ -80,6 +119,9 @@ public class BookingService {
         if (show == null) {
             throw new Exception("Show not found");
         }
+        
+        // Validation: Show is in future
+        ValidationUtil.validateCancellationAllowed(show.getShowDate());
         
         // Calculate refund
         CancellationService cancellationService = new CancellationService();
@@ -123,5 +165,26 @@ public class BookingService {
         return String.format("Show: %s\nBalcony seats available: %d (₹%.2f each)\nOrdinary seats available: %d (₹%.2f each)",
                 show.getShowName(), availableBalcony, show.getBalconyPrice(),
                 availableOrdinary, show.getOrdinaryPrice());
+    }
+    
+    /**
+     * BookingResult - Encapsulates booking and generated ticket
+     */
+    public static class BookingResult {
+        private final Booking booking;
+        private final Ticket ticket;
+        
+        public BookingResult(Booking booking, Ticket ticket) {
+            this.booking = booking;
+            this.ticket = ticket;
+        }
+        
+        public Booking getBooking() { return booking; }
+        public Ticket getTicket() { return ticket; }
+        
+        @Override
+        public String toString() {
+            return "Booking successful!\n" + booking + "\n\nTicket generated:\n" + ticket;
+        }
     }
 }

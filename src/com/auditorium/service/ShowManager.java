@@ -63,6 +63,10 @@ public class ShowManager {
     
     // ===== SHOW MANAGEMENT =====
     public void addShow(Show show, int balconyCount, int ordinaryCount) {
+        // Validate seat allocation
+        com.auditorium.util.ValidationUtil.validateSeatAllocation(balconyCount, 0);
+        com.auditorium.util.ValidationUtil.validateSeatAllocation(ordinaryCount, 0);
+        
         // Create seats using factory
         List<Seat> balconySeats = SeatFactory.createBalconySeats(balconyCount);
         List<Seat> ordinarySeats = SeatFactory.createOrdinarySeats(ordinaryCount);
