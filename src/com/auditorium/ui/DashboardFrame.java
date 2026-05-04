@@ -325,7 +325,7 @@ public class DashboardFrame extends JFrame {
 
         // Create Show Form
         JPanel formPanel = new JPanel(new GridLayout(7, 2, 10, 10));
-        formPanel.setBorder(BorderFactory.createTitledBorder("Create New Show"));
+        formPanel.setBorder(BorderFactory.createTitledBorder("Create New Show (Note: 5 Comp Seats Auto-Reserved)"));
         
         formPanel.add(new JLabel("Show Name:"));
         JTextField nameField = new JTextField();
