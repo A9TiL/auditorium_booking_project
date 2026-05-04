@@ -80,6 +80,20 @@ public class ShowManager {
     public Show getShow(String showId) {
         return shows.get(showId);
     }
+
+    public void deleteShow(String showId) throws Exception {
+        if (!shows.containsKey(showId)) {
+            throw new Exception("Show ID not found.");
+        }
+        // Ensure no active bookings exist before deleting
+        boolean hasActiveBookings = bookings.values().stream()
+            .anyMatch(b -> b.getShowId().equals(showId) && !b.isCancelled());
+        
+        if (hasActiveBookings) {
+            throw new Exception("Cannot delete show: Active bookings exist.");
+        }
+        shows.remove(showId);
+    }
     
     public List<Show> getAllShows() {
         return new ArrayList<>(shows.values());

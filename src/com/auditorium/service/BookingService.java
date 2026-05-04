@@ -38,12 +38,16 @@ public class BookingService {
         // Validation: Show is in future
         ValidationUtil.validateBookingAllowed(show.getShowDate(), show.getShowTime());
         
-        // Get available seats
-        List<Seat> availableSeats = getAvailableSeats(show, seatType);
-        
-        if (availableSeats.size() < quantity) {
-            throw new Exception("Not enough seats available. Available: " + availableSeats.size());
+        // 👉 THE FIX: Enforce the strict mathematical limit (Total - Complimentary - Booked)
+        int actualAvailable = (seatType == SeatType.BALCONY) ? 
+                              show.getAvailableBalconySeats() : show.getAvailableOrdinarySeats();
+                              
+        if (actualAvailable < quantity) {
+            throw new Exception("Not enough " + seatType + " seats available. Only " + actualAvailable + " left.");
         }
+        
+        // Get available physical seats
+        List<Seat> availableSeats = getAvailableSeats(show, seatType);
         
         // Allocate seats
         List<Seat> allocatedSeats = availableSeats.subList(0, quantity);

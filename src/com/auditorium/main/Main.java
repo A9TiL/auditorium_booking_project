@@ -8,6 +8,9 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Scanner;
 import java.util.Map;
+import com.auditorium.ui.LoginFrame;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
 
 public class Main {
     private static ShowManager showManager = ShowManager.getInstance();
@@ -16,21 +19,21 @@ public class Main {
     private static Scanner scanner = new Scanner(System.in);
     
     public static void main(String[] args) {
-        System.out.println("=== STUDENTS AUDITORIUM MANAGEMENT SYSTEM ===\n");
+        System.out.println("=== INITIALIZING SYSTEM ===");
+        initializeSampleData(); // Load the sample shows and users
         
-        // Initialize sample data
-        initializeSampleData();
-        
-        boolean running = true;
-        while (running) {
-            if (!showManager.isLoggedIn()) {
-                showLoginMenu();
-            } else {
-                showMainMenu();
-            }
+        // Launch the Swing UI on the Event Dispatch Thread (Best Practice)
+        try {
+        UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+        SwingUtilities.invokeLater(() -> {
+            LoginFrame loginScreen = new LoginFrame();
+            loginScreen.setVisible(true);
+        });
     }
-    
+        
     private static void initializeSampleData() {
         // Create sample show
         Show show1 = new Show("SH001", "Classical Music Concert", 

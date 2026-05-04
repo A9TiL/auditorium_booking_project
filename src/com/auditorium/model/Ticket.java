@@ -57,31 +57,64 @@ public class Ticket {
     /**
      * Generate printable ticket string
      */
+    /**
+     * Generate printable ticket string with Smart Word Wrapping
+     */
     public String generatePrintableTicket() {
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd-MMM-yyyy");
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("hh:mm a");
         
         StringBuilder ticket = new StringBuilder();
+        // The box inside width is exactly 48 characters. (17 for label + 31 for value)
         ticket.append("╔════════════════════════════════════════════════╗\n");
-        ticket.append("║         STUDENTS AUDITORIUM TICKET              ║\n");
+        ticket.append("║           STUDENTS AUDITORIUM TICKET           ║\n");
         ticket.append("╠════════════════════════════════════════════════╣\n");
-        ticket.append(String.format("║ Ticket ID    : %-32s ║\n", ticketId));
-        ticket.append(String.format("║ Booking ID   : %-32s ║\n", bookingId));
+        ticket.append(String.format("║ Ticket ID    : %-31s ║\n", ticketId));
+        ticket.append(String.format("║ Booking ID   : %-31s ║\n", bookingId));
         ticket.append("╠════════════════════════════════════════════════╣\n");
-        ticket.append(String.format("║ Show         : %-32s ║\n", showName));
-        ticket.append(String.format("║ Date         : %-32s ║\n", showDate.format(dateFormatter)));
-        ticket.append(String.format("║ Time         : %-32s ║\n", showTime.format(timeFormatter)));
+        
+        // Prevent extremely long show names from breaking the box
+        String safeShowName = showName.length() > 31 ? showName.substring(0, 28) + "..." : showName;
+        ticket.append(String.format("║ Show         : %-31s ║\n", safeShowName));
+        ticket.append(String.format("║ Date         : %-31s ║\n", showDate.format(dateFormatter)));
+        ticket.append(String.format("║ Time         : %-31s ║\n", showTime.format(timeFormatter)));
         ticket.append("╠════════════════════════════════════════════════╣\n");
-        ticket.append(String.format("║ Seat Type    : %-32s ║\n", seatType));
-        ticket.append(String.format("║ Quantity     : %-32d ║\n", quantity));
-        ticket.append(String.format("║ Seat Numbers : %-32s ║\n", 
-            seatNumbers.toString().replaceAll("[\\[\\]]", "")));
+        ticket.append(String.format("║ Seat Type    : %-31s ║\n", seatType));
+        ticket.append(String.format("║ Quantity     : %-31d ║\n", quantity));
+        
+        // --- SMART WORD WRAP FOR SEATS ---
+        String seatsList = String.join(", ", seatNumbers);
+        boolean isFirst = true;
+        
+        while (seatsList.length() > 0) {
+            String line;
+            if (seatsList.length() <= 31) {
+                line = seatsList;
+                seatsList = "";
+            } else {
+                // Find the last comma within the 31 character limit so we don't chop a seat ID in half
+                int breakPoint = seatsList.substring(0, 31).lastIndexOf(", ");
+                if (breakPoint == -1) breakPoint = 31; // Fallback
+                line = seatsList.substring(0, breakPoint);
+                seatsList = seatsList.substring(breakPoint).replaceFirst("^, ", "").trim();
+            }
+            
+            if (isFirst) {
+                ticket.append(String.format("║ Seat Numbers : %-31s ║\n", line));
+                isFirst = false;
+            } else {
+                ticket.append(String.format("║                %-31s ║\n", line));
+            }
+        }
+        // ---------------------------------
+        
         ticket.append("╠════════════════════════════════════════════════╣\n");
-        ticket.append(String.format("║ Price/Seat   : ₹%-31.2f ║\n", pricePerSeat));
-        ticket.append(String.format("║ Total Amount : ₹%-31.2f ║\n", totalAmount));
+        // Note: ₹ symbol takes up slightly different space in some fonts, adjusting format slightly
+        ticket.append(String.format("║ Price/Seat   : ₹%-30.2f ║\n", pricePerSeat));
+        ticket.append(String.format("║ Total Amount : ₹%-30.2f ║\n", totalAmount));
         ticket.append("╠════════════════════════════════════════════════╣\n");
-        ticket.append(String.format("║ Booked by    : %-32s ║\n", salesPersonName));
-        ticket.append(String.format("║ Booked on    : %-32s ║\n", bookingDate.format(dateFormatter)));
+        ticket.append(String.format("║ Booked by    : %-31s ║\n", salesPersonName));
+        ticket.append(String.format("║ Booked on    : %-31s ║\n", bookingDate.format(dateFormatter)));
         ticket.append("╚════════════════════════════════════════════════╝\n");
         
         return ticket.toString();
