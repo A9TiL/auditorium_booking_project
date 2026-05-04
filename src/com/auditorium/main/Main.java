@@ -46,10 +46,13 @@ public class Main {
         // Add a sample sales person
         SalesPerson sp1 = new SalesPerson("SP001", "Rajesh Kumar", "rajesh", "pass123");
         showManager.addSalesPerson(sp1);
+        // Inside Main.java -> initializeSampleData()
+        showManager.addSalesPerson(new SalesPerson("SP002", "Priya Sharma", "priya", "pass123"));
         
         System.out.println("✓ Sample data initialized");
         System.out.println("  Login as manager: username='manager', password='admin123'");
-        System.out.println("  Login as sales person: username='rajesh', password='pass123'\n");
+        System.out.println("  Login as sales person1: username='rajesh', password='pass123'");
+        System.out.println("  Login as sales person2: username='priya', password='pass123'\n");
     }
     
     private static void showLoginMenu() {
