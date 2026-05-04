@@ -324,12 +324,23 @@ public class DashboardFrame extends JFrame {
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         // Create Show Form
-        JPanel formPanel = new JPanel(new GridLayout(7, 2, 10, 10));
+        // 👉 FIX: Increased grid rows from 7 to 8 to fit Date and Time
+        JPanel formPanel = new JPanel(new GridLayout(8, 2, 10, 10));
         formPanel.setBorder(BorderFactory.createTitledBorder("Create New Show (Note: 5 Comp Seats Auto-Reserved)"));
         
         formPanel.add(new JLabel("Show Name:"));
         JTextField nameField = new JTextField();
         formPanel.add(nameField);
+        
+        // 👉 FIX: Added Date Field with a default placeholder
+        formPanel.add(new JLabel("Show Date (YYYY-MM-DD):"));
+        JTextField dateField = new JTextField(java.time.LocalDate.now().plusDays(1).toString());
+        formPanel.add(dateField);
+
+        // 👉 FIX: Added Time Field with a default placeholder
+        formPanel.add(new JLabel("Show Time (HH:MM 24hr):"));
+        JTextField timeField = new JTextField("18:00");
+        formPanel.add(timeField);
         
         formPanel.add(new JLabel("Balcony Seats (Total):"));
         JSpinner balconySpinner = new JSpinner(new SpinnerNumberModel(50, 10, 500, 10));
@@ -379,7 +390,7 @@ public class DashboardFrame extends JFrame {
         scrollPane.setBorder(BorderFactory.createTitledBorder("Active Shows Database"));
         panel.add(scrollPane, BorderLayout.CENTER);
 
-        // 👉 UPGRADE: Strict HTML 3.2 Layout for perfect Swing alignment
+        // Logic: Build the beautiful HTML table
         Runnable refreshDisplay = () -> {
             StringBuilder html = new StringBuilder();
             html.append("<html><body style='font-family: sans-serif; font-size: 11px; padding: 5px; color: #333;'>");
@@ -419,17 +430,28 @@ public class DashboardFrame extends JFrame {
         createButton.addActionListener(e -> {
             try {
                 String name = nameField.getText().trim();
+                String dateStr = dateField.getText().trim();
+                String timeStr = timeField.getText().trim();
                 String bPriceStr = balcPriceField.getText().trim();
                 String oPriceStr = ordPriceField.getText().trim();
                 
-                if (name.isEmpty()) throw new Exception("Show name cannot be empty.");
+                if (name.isEmpty() || dateStr.isEmpty() || timeStr.isEmpty()) throw new Exception("Name, Date, and Time cannot be empty.");
                 if (bPriceStr.isEmpty() || oPriceStr.isEmpty()) throw new Exception("Prices cannot be empty.");
+                
                 double bPrice = Double.parseDouble(bPriceStr);
                 double oPrice = Double.parseDouble(oPriceStr);
                 if (bPrice <= 0 || oPrice <= 0) throw new Exception("Prices must be greater than zero.");
 
+                // 👉 FIX: Parse the user's Date and Time
+                java.time.LocalDate showDate = java.time.LocalDate.parse(dateStr);
+                java.time.LocalTime showTime = java.time.LocalTime.parse(timeStr);
+                
+                if (showDate.isBefore(java.time.LocalDate.now())) {
+                    throw new Exception("Show date cannot be in the past.");
+                }
+
                 String id = "SH" + String.format("%03d", showManager.getAllShows().size() + 1);
-                Show newShow = new Show(id, name, java.time.LocalDate.now().plusDays(7), java.time.LocalTime.of(18,0));
+                Show newShow = new Show(id, name, showDate, showTime);
                 newShow.configureSeatAllocation((int)balconySpinner.getValue(), (int)ordinarySpinner.getValue(), 5, 5);
                 newShow.setPricing(bPrice, oPrice);
                 
@@ -437,6 +459,10 @@ public class DashboardFrame extends JFrame {
                 refreshDisplay.run();
                 nameField.setText("");
                 JOptionPane.showMessageDialog(this, "Show Created Successfully!");
+                
+            } catch (java.time.format.DateTimeParseException ex) {
+                // Safely catch typos in the date format
+                JOptionPane.showMessageDialog(this, "Invalid Date/Time format. Use YYYY-MM-DD and HH:MM (e.g., 2026-12-31 and 18:30).", "Validation Error", JOptionPane.ERROR_MESSAGE);
             } catch (NumberFormatException ex) {
                 JOptionPane.showMessageDialog(this, "Prices must be valid numbers.", "Validation Error", JOptionPane.ERROR_MESSAGE);
             } catch (Exception ex) {
